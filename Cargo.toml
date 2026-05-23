@@ -1,0 +1,16 @@
+[package]
+name = "fast-game-of-life"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+hashbrown = "0.17.1"
+indoc = "2.0"
+minifb = "0.28"
+
+[profile.release]
+opt-level = 3         # Maximize CPU optimizations (0 to 3, or "s"/"z" for size)
+lto = true            # Enable Link-Time Optimization (cross-crate optimization)
+codegen-units = 1     # Reduce parallel codegen generator units to allow more aggressive optimizations
+panic = "abort"       # Remove panic unwinding overhead (reduces binary size and speeds up code)
+strip = true          # Strip all debug symbols and symbol tables from the binary
