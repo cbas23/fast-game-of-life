@@ -1,6 +1,9 @@
 use std::{thread, time::Duration};
 
-use crate::{chunk::Chunk, world::World};
+use crate::{
+    chunk::Chunk,
+    world::{World, simple_test},
+};
 use indoc::indoc;
 use minifb::{Key, Window, WindowOptions};
 use std::sync::mpsc::{TrySendError, sync_channel};
@@ -32,6 +35,8 @@ mod chunk;
 mod world;
 
 fn main() {
+    simple_test();
+
     let (tx, rx) = sync_channel::<Vec<u32>>(1); // backpressure: max 1 pending frame
     // === Simulation Thread ===
     thread::spawn(move || {
@@ -84,9 +89,7 @@ fn rasterize_world(world: &World, buf: &mut [u32], origin_cx: i32, origin_cy: i3
         for cx in origin_cx..origin_cx + VIEW_CHUNKS_X as i32 {
             if let Some(chunk) = world.get_chunk(cx, cy) {
                 let base_px = ((cx - origin_cx) as usize * CHUNK_DIM * CELL_SIZE) as isize;
-                let base_py = ((VIEW_CHUNKS_Y - 1 - (cy - origin_cy) as usize)
-                    * CHUNK_DIM
-                    * CELL_SIZE) as isize;
+                let base_py = ((cy - origin_cy) as usize * CHUNK_DIM * CELL_SIZE) as isize;
                 for row in 0..CHUNK_DIM {
                     let bits = chunk.get_row(row);
                     // Your chunk packs bit 31 as the leftmost column

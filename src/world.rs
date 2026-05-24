@@ -1,9 +1,4 @@
-use std::{
-    array,
-    io::{self, Write},
-    thread,
-    time::Duration,
-};
+use std::array;
 
 use hashbrown::HashMap;
 use hashbrown::HashSet;
@@ -67,9 +62,7 @@ impl World {
         self.chunks.get(&coords)
     }
 
-    pub fn load_from_string(&mut self, chunk_x: i32, chunk_y: i32, s: &str) {
-        
-    }
+    pub fn load_from_string(&mut self, chunk_x: i32, chunk_y: i32, s: &str) {}
 
     fn get_neighbor_chunks(&self, coords: u64) -> NeighborChunks<'_> {
         let (x, y) = unpack_coords(coords);
@@ -78,14 +71,14 @@ impl World {
             self.chunks.get(&neighbor_coords)
         };
         NeighborChunks {
-            ne: get_chunk(x + 1, y + 1),
+            se: get_chunk(x + 1, y + 1),
+            s: get_chunk(x, y + 1),
+            sw: get_chunk(x - 1, y + 1),
             e: get_chunk(x + 1, y),
-            se: get_chunk(x + 1, y - 1),
-            n: get_chunk(x, y + 1),
-            s: get_chunk(x, y - 1),
-            nw: get_chunk(x - 1, y + 1),
             w: get_chunk(x - 1, y),
-            sw: get_chunk(x - 1, y - 1),
+            ne: get_chunk(x + 1, y - 1),
+            n: get_chunk(x, y - 1),
+            nw: get_chunk(x - 1, y - 1),
         }
     }
 }
@@ -150,29 +143,29 @@ fn add_neighbors_to_set(
     if first_row != 0 {
         // -- N --
         if neighbors.n.is_none() {
-            set.insert(pack_coords(x, y + 1));
+            set.insert(pack_coords(x, y - 1));
         }
         // -- NW --
         if (first_row >> 31) != 0 && neighbors.nw.is_none() {
-            set.insert(pack_coords(x - 1, y + 1));
+            set.insert(pack_coords(x - 1, y - 1));
         }
         // -- NE --
         if (first_row & 1) != 0 && neighbors.ne.is_none() {
-            set.insert(pack_coords(x + 1, y + 1));
+            set.insert(pack_coords(x + 1, y - 1));
         }
     }
     if last_row != 0 {
         // -- S --
         if neighbors.s.is_none() {
-            set.insert(pack_coords(x, y - 1));
+            set.insert(pack_coords(x, y + 1));
         }
         // -- SW --
         if (last_row >> 31) != 0 && neighbors.sw.is_none() {
-            set.insert(pack_coords(x - 1, y - 1));
+            set.insert(pack_coords(x - 1, y + 1));
         }
         // -- SE --
         if (last_row & 1) != 0 && neighbors.se.is_none() {
-            set.insert(pack_coords(x + 1, y - 1));
+            set.insert(pack_coords(x + 1, y + 1));
         }
     }
     let mut left_sum: u32 = 0;
@@ -335,14 +328,14 @@ pub fn simple_test() {
     central_chunk.set_row(28, 0x3000000C);
     central_chunk.set_row(29, 0x3000000C);
 
-    w.add_chunk(-1, 1, nw_chunk);
-    w.add_chunk(0, 1, n_chunk);
-    w.add_chunk(1, 1, ne_chunk);
+    w.add_chunk(-1, -1, nw_chunk);
+    w.add_chunk(0, -1, n_chunk);
+    w.add_chunk(1, -1, ne_chunk);
     w.add_chunk(-1, 0, w_chunk);
     w.add_chunk(1, 0, e_chunk);
-    w.add_chunk(-1, -1, sw_chunk);
-    w.add_chunk(0, -1, s_chunk);
-    w.add_chunk(1, -1, se_chunk);
+    w.add_chunk(-1, 1, sw_chunk);
+    w.add_chunk(0, 1, s_chunk);
+    w.add_chunk(1, 1, se_chunk);
     w.add_chunk(0, 0, central_chunk);
 
     print!("\n");
@@ -393,68 +386,5 @@ pub fn simple_test() {
             print!("{}", line);
             print!("\x1b[0m\n");
         }
-    }
-
-    // display(&mut w, 2000);
-}
-
-fn display(w: &mut World, speed: u64) {
-    let from = -1;
-    let to = 1;
-    let mut display: Vec<Vec<String>> = Vec::new();
-
-    for i in 1..=200 {
-        // clear the screen
-        print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
-
-        // set the display values
-        for x in from..=to {
-            let mut column: Vec<String> = Vec::new();
-            for y in from..=to {
-                if let Some(chunk) = w.get_chunk(x, y) {
-                    let text_list = chunk.to_string_list_compact();
-                    column.append(&mut text_list.to_vec());
-                } else {
-                    let emtpy_list: [String; 16] = array::from_fn(|_| String::from(".".repeat(32)));
-                    column.append(&mut emtpy_list.to_vec());
-                };
-            }
-            display.push(column);
-        }
-
-        // alternate bg 40 and 100
-
-        print!("Frame: {}\n\n", i);
-
-        let Some(first) = display.first() else {
-            return;
-        };
-
-        let col_len = first.len();
-        let len = display.len();
-
-        println!("from {}, to {}", 0, col_len);
-
-        for y in 0..=col_len {
-            // println!("some col");
-            for x in 0..=len {
-                // println!("some row");
-                if let Some(col) = display.get(x) {
-                    if let Some(string) = col.get(y) {
-                        let color_code = 31 + (x % 6);
-                        print!("\x1b[{}m{}\x1b[0m", color_code, string);
-                    };
-                };
-            }
-            print!("\n");
-        }
-
-        display.clear();
-
-        io::stdout().flush().unwrap();
-
-        w.compute_gen();
-
-        thread::sleep(Duration::from_millis(speed));
     }
 }
