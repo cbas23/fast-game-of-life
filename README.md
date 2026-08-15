@@ -98,8 +98,12 @@ examples/
   desktop.rs  Graphical minifb renderer
 wasm/
   src/lib.rs  JavaScript-facing WebAssembly wrapper
-lex/        Reference Game of Life lexicon files
+lex/          Local Game of Life lexicon used only as testing reference material
 ```
+
+The `lex/` directory may be present locally as reference material for testing.
+The project does not use it at runtime or as a build dependency, and it is
+intentionally excluded from Git so its contents are not published on GitHub.
 
 ## Pattern Format
 
