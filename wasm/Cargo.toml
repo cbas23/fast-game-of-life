@@ -2,6 +2,8 @@
 name = "fast-game-of-life-wasm"
 version = "0.1.0"
 edition = "2024"
+description = "WebAssembly bindings for fast-game-of-life"
+license = "MIT"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -9,3 +11,17 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 fast-game-of-life = { path = ".." }
 wasm-bindgen = "0.2"
+
+# Rust enables these widely supported WebAssembly features by default. Pass
+# them through to wasm-pack's Binaryen optimizer so it validates the same
+# feature set as rustc.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = [
+    "-O",
+    "--enable-bulk-memory",
+    "--enable-multivalue",
+    "--enable-mutable-globals",
+    "--enable-nontrapping-float-to-int",
+    "--enable-reference-types",
+    "--enable-sign-ext",
+]

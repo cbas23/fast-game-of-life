@@ -2,6 +2,8 @@
 name = "fast-game-of-life"
 version = "0.1.0"
 edition = "2024"
+description = "A fast, sparse implementation of Conway's Game of Life"
+license = "MIT"
 
 [workspace]
 members = ["wasm"]

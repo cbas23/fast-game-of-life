@@ -1,5 +1,7 @@
 # fast-game-of-life
 
+![fast-game-of-life icon](assets/icon.svg)
+
 A Rust implementation of Conway's Game of Life focused on fast sparse-world updates.
 
 The simulation stores the world as 32x32 chunks. Each row is packed into a `u32`, and each generation is computed with bitwise neighbor counting instead of per-cell object storage. Terminal and `minifb` renderers are included as examples.
