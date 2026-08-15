@@ -1,0 +1,11 @@
+[package]
+name = "fast-game-of-life-wasm"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+fast-game-of-life = { path = ".." }
+wasm-bindgen = "0.2"

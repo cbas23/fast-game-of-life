@@ -104,6 +104,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "fast-game-of-life-wasm"
+version = "0.1.0"
+dependencies = [
+ "fast-game-of-life",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "fastrand"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

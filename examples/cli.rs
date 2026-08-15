@@ -16,6 +16,10 @@ const START_CELLS: &str = "
     .*.
     ..*
     ***
+
+    .*.
+    ..*
+    ***
 ";
 
 fn main() -> io::Result<()> {
