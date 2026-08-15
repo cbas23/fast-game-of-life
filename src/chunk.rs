@@ -11,7 +11,7 @@ impl Chunk {
     }
 
     pub fn get_row(&self, i: usize) -> u32 {
-        if i > 32 {
+        if i >= 32 {
             0
         } else {
             let val = self.rows[i];

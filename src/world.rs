@@ -1,4 +1,4 @@
-use std::array;
+use std::collections::LinkedList;
 
 use hashbrown::HashMap;
 use hashbrown::HashSet;
@@ -22,13 +22,13 @@ struct NeighborChunks<'a> {
 }
 
 impl World {
-    pub fn new() -> World {
-        World {
+    pub fn new() -> Self {
+        Self {
             chunks: HashMap::new(),
         }
     }
 
-    pub fn compute_gen(&mut self) {
+    pub fn step(&mut self) {
         let mut new_gen: HashMap<u64, Chunk> = HashMap::new();
         let mut extra_coords: HashSet<u64> = HashSet::new();
         // go through all the chunks
@@ -52,17 +52,72 @@ impl World {
         self.chunks = new_gen;
     }
 
-    pub fn add_chunk(&mut self, x: i32, y: i32, chunk: Chunk) {
-        let coords = pack_coords(x, y);
-        self.chunks.insert(coords, chunk);
+    pub fn set_cell(&mut self, x: i64, y: i64, value: bool) {
+        let chunk_x = x.div_euclid(32);
+        let chunk_y = y.div_euclid(32);
+        let local_x = x.rem_euclid(32);
+        let local_y = y.rem_euclid(32);
+        let chunk_coords = pack_coords(chunk_x as i32, chunk_y as i32);
+
+        // get or insert the chunk
+        let chunk = self.chunks.entry(chunk_coords).or_insert(Chunk::new());
+        let row = chunk.get_row(local_y as usize);
+        let mask = 1 << (31 - local_x);
+        let new_row = if value { row | mask } else { row & !mask };
+        chunk.set_row(local_y as usize, new_row);
     }
 
-    pub fn get_chunk(&self, x: i32, y: i32) -> Option<&Chunk> {
-        let coords = pack_coords(x, y);
-        self.chunks.get(&coords)
+    pub fn is_alive(&self, x: i64, y: i64) -> bool {
+        let chunk_x = x.div_euclid(32);
+        let chunk_y = y.div_euclid(32);
+        let local_x = x.rem_euclid(32);
+        let local_y = y.rem_euclid(32);
+        let chunk_coords = pack_coords(chunk_x as i32, chunk_y as i32);
+        let chunk = self.chunks.get(&chunk_coords);
+        if let Some(chunk) = chunk {
+            let row = chunk.get_row(local_y as usize);
+            (row & (1 << (31 - local_x))) != 0
+        } else {
+            false
+        }
     }
 
-    pub fn load_from_string(&mut self, chunk_x: i32, chunk_y: i32, s: &str) {}
+    pub fn live_cells(&self) -> impl Iterator<Item = (i64, i64)> {
+        let mut list = LinkedList::new();
+        for (chunk_coords, chunk) in &self.chunks {
+            let (chunk_x, chunk_y) = unpack_coords(*chunk_coords);
+            for local_y in 0..32 {
+                let row = chunk.get_row(local_y as usize);
+                if row == 0 {
+                    continue;
+                }
+                for local_x in 0..32 {
+                    if (row & (1 << (31 - local_x))) != 0 {
+                        let x = chunk_x as i64 * 32 + local_x as i64;
+                        let y = chunk_y as i64 * 32 + local_y as i64;
+                        list.push_back((x, y));
+                    }
+                }
+            }
+        }
+        list.into_iter()
+    }
+
+    pub fn clear(&mut self) {
+        self.chunks.clear();
+    }
+
+    pub fn load_pattern(&mut self, origin_x: i64, origin_y: i64, pattern: &str) {
+        for (line_idx, line) in pattern.lines().enumerate() {
+            for (char_idx, char) in line.chars().enumerate() {
+                if char == '*' {
+                    let x = origin_x + char_idx as i64;
+                    let y = origin_y + line_idx as i64;
+                    self.set_cell(x, y, true);
+                }
+            }
+        }
+    }
 
     fn get_neighbor_chunks(&self, coords: u64) -> NeighborChunks<'_> {
         let (x, y) = unpack_coords(coords);
@@ -280,111 +335,4 @@ fn unpack_coords(packed: u64) -> (i32, i32) {
     let x = (packed >> 32) as i32;
     let y = packed as i32;
     (x, y)
-}
-
-// ==========================================================================//
-//                                TESTS                                      //
-// ==========================================================================//
-
-pub fn simple_test() {
-    let mut w = World::new();
-
-    let mut nw_chunk = Chunk::new();
-    nw_chunk.set_row(31, 0x00000001);
-    let mut n_chunk = Chunk::new();
-    n_chunk.set_row(31, 0xF000000F);
-    let mut ne_chunk = Chunk::new();
-    ne_chunk.set_row(31, 0x80000000);
-
-    let mut w_chunk = Chunk::new();
-    w_chunk.set_row(0, 0x00000001);
-    w_chunk.set_row(1, 0x00000001);
-    w_chunk.set_row(2, 0x00000001);
-    w_chunk.set_row(3, 0x00000001);
-    w_chunk.set_row(28, 0x00000001);
-    w_chunk.set_row(29, 0x00000001);
-    w_chunk.set_row(30, 0x00000001);
-    w_chunk.set_row(31, 0x00000001);
-    let mut e_chunk = Chunk::new();
-    e_chunk.set_row(0, 0x80000000);
-    e_chunk.set_row(1, 0x80000000);
-    e_chunk.set_row(2, 0x80000000);
-    e_chunk.set_row(3, 0x80000000);
-    e_chunk.set_row(28, 0x80000000);
-    e_chunk.set_row(29, 0x80000000);
-    e_chunk.set_row(30, 0x80000000);
-    e_chunk.set_row(31, 0x80000000);
-
-    let mut sw_chunk = Chunk::new();
-    sw_chunk.set_row(0, 0x00000001);
-    let mut s_chunk = Chunk::new();
-    s_chunk.set_row(0, 0xF000000F);
-    let mut se_chunk = Chunk::new();
-    se_chunk.set_row(0, 0x80000000);
-
-    let mut central_chunk = Chunk::new();
-    central_chunk.set_row(2, 0x3000000C);
-    central_chunk.set_row(3, 0x3000000C);
-    central_chunk.set_row(28, 0x3000000C);
-    central_chunk.set_row(29, 0x3000000C);
-
-    w.add_chunk(-1, -1, nw_chunk);
-    w.add_chunk(0, -1, n_chunk);
-    w.add_chunk(1, -1, ne_chunk);
-    w.add_chunk(-1, 0, w_chunk);
-    w.add_chunk(1, 0, e_chunk);
-    w.add_chunk(-1, 1, sw_chunk);
-    w.add_chunk(0, 1, s_chunk);
-    w.add_chunk(1, 1, se_chunk);
-    w.add_chunk(0, 0, central_chunk);
-
-    print!("\n");
-
-    for (coord, chunk) in w.chunks.iter() {
-        let (x, y) = unpack_coords(*coord);
-        println!("\nCHUNK: ({}, {})", x, y);
-        let chunk_lines = chunk.to_string_list_compact();
-        for line in chunk_lines {
-            print!("\x1b[40m");
-            print!("{}", line);
-            print!("\x1b[0m\n");
-        }
-    }
-
-    println!("\n=== MASKS ===\n");
-
-    let mut full_chunk_masks: [Vec<u32>; 8] = array::from_fn(|_| Vec::new());
-
-    if let Some(chunk) = w.get_chunk(0, 0) {
-        let neighbors = w.get_neighbor_chunks(pack_coords(0, 0));
-
-        let upper_masks = calc_top_row_masks(&neighbors, chunk);
-        for (i, mask) in upper_masks.iter().enumerate() {
-            full_chunk_masks[i].push(*mask);
-        }
-        for k in 1..31 {
-            let upper_masks = calc_inner_row_masks(&neighbors, chunk, k);
-            for (i, mask) in upper_masks.iter().enumerate() {
-                full_chunk_masks[i].push(*mask);
-            }
-        }
-        let lower_masks = calc_bottom_row_masks(&neighbors, chunk);
-        for (i, mask) in lower_masks.iter().enumerate() {
-            full_chunk_masks[i].push(*mask);
-        }
-    };
-
-    for (i, mask_rows) in full_chunk_masks.iter().enumerate() {
-        let mut mask_chunk = Chunk::new();
-        for (row_idx, &value) in mask_rows.iter().enumerate() {
-            mask_chunk.set_row(row_idx, value);
-        }
-        println!("\nMASK CHUNK: {}", i);
-        let chunk_lines = mask_chunk.to_string_list_compact();
-        for line in chunk_lines {
-            print!("\x1b[40m");
-            print!("{}", line);
-            print!("\x1b[0m\n");
-        }
-    }
 }
