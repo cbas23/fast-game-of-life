@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 description = "A fast, sparse implementation of Conway's Game of Life"
 license = "MIT"
+repository = "https://github.com/cbas23/fast-game-of-life"
 
 [workspace]
 members = ["wasm"]
